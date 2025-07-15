@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Select Your College - CollegeReview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+
+<div class="bg-white rounded-lg shadow-md p-8 max-w-xl w-full">
+  <h1 class="text-2xl font-bold text-gray-900 mb-4">Welcome, {{ user.name }}</h1>
+  <p class="text-gray-600 mb-6">Select or update your UG/PG college(s)</p>
+
+  <form method="POST" action="/select-colleges">
+    <!-- UG College -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Undergraduate College</label>
+      <input type="text" id="ug_search" value="{{ ug_name or '' }}" placeholder="Type college name..." class="w-full border px-3 py-2 rounded-lg" autocomplete="off">
+      <input type="hidden" name="ug_college" id="ug_college" value="{{ ug_code or '' }}">
+      <ul id="ug_suggestions" class="mt-1 bg-white border rounded-md shadow-md hidden max-h-60 overflow-y-auto"></ul>
+    </div>
+
+    <!-- PG College -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Postgraduate College (Optional)</label>
+      <input type="text" id="pg_search" value="{{ pg_name or '' }}" placeholder="Type college name..." class="w-full border px-3 py-2 rounded-lg" autocomplete="off">
+      <input type="hidden" name="pg_college" id="pg_college" value="{{ pg_code or '' }}">
+      <ul id="pg_suggestions" class="mt-1 bg-white border rounded-md shadow-md hidden max-h-60 overflow-y-auto"></ul>
+    </div>
+
+    <div class="flex justify-between">
+      <a href="/search" class="text-sm text-blue-600 hover:underline">Skip</a>
+      <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg">Continue</button>
+    </div>
+  </form>
+</div>
+
+<script>
+function setupAutocomplete(inputId, hiddenId, listId) {
+  const input = document.getElementById(inputId)
+  const hidden = document.getElementById(hiddenId)
+  const list = document.getElementById(listId)
+
+  input.addEventListener("input", async () => {
+    const q = input.value.trim()
+
+    // If input is cleared manually, clear hidden input too
+    if (!q) {
+      hidden.value = ""
+      list.classList.add("hidden")
+      return
+    }
+
+    if (q.length < 2) {
+      list.classList.add("hidden")
+      return
+    }
+
+    const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`)
+    const data = await res.json()
+
+    list.innerHTML = ""
+    data.forEach(item => {
+      const li = document.createElement("li")
+      li.textContent = item.name
+      li.className = "px-4 py-2 hover:bg-gray-100 cursor-pointer"
+      li.onclick = () => {
+        input.value = item.name
+        hidden.value = item.aishe_code
+        list.classList.add("hidden")
+      }
+      list.appendChild(li)
+    })
+
+    if (data.length > 0) {
+      list.classList.remove("hidden")
+    } else {
+      list.classList.add("hidden")
+    }
+  })
+
+  document.addEventListener("click", e => {
+    if (!list.contains(e.target) && e.target !== input) {
+      list.classList.add("hidden")
+    }
+  })
+}
+
+setupAutocomplete("ug_search", "ug_college", "ug_suggestions")
+setupAutocomplete("pg_search", "pg_college", "pg_suggestions")
+</script>
+
+</body>
+</html>

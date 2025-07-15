@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ inst.name }} - CollegeReview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="bg-white shadow-sm border-b">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+      <div class="flex items-center gap-4">
+        <a href="/search" class="text-gray-600 hover:text-gray-900">
+          <i class="fas fa-arrow-left"></i>
+        </a>
+        <a href="/" class="text-xl font-bold text-gray-900 hover:underline">CollegeReview</a>
+      </div>
+      <div class="flex items-center gap-4">
+        {% if user %}
+        <a href="/profile" class="text-gray-600 hover:text-gray-900">
+          <img src="{{ url_for('static', filename=user.photo_url) if user.photo_url else url_for('static', filename='images/default-avatar.svg') }}" alt="User" class="w-8 h-8 rounded-full">
+        </a>
+        {% else %}
+        <a href="/login" class="text-sm text-blue-600 hover:underline">Login</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ inst.name }}</h1>
+    <div class="grid md:grid-cols-2 gap-4 mb-4">
+      <div>
+        <p class="text-gray-600 mb-2"><i class="fas fa-university mr-2"></i><strong>Type:</strong> {{ inst.institution_type or "Unknown" }}</p>
+        <p class="text-gray-600 mb-2"><i class="fas fa-map-marker-alt mr-2"></i><strong>State:</strong> {{ inst.state or "Unknown" }}</p>
+      </div>
+      <div>
+        <p class="text-gray-600 mb-2"><i class="fas fa-city mr-2"></i><strong>District:</strong> {{ inst.district or "Unknown" }}</p>
+        {% if inst.website %}
+        <p class="text-gray-600 mb-2"><i class="fas fa-globe mr-2"></i><strong>Website:</strong> 
+          <a href="{{ inst.website }}" class="text-blue-600 hover:underline" target="_blank">{{ inst.website }}</a>
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if reviews %}
+    <div class="flex items-center gap-2 mt-2">
+      <div class="flex text-yellow-400">
+        {% for i in range(1, 6) %}
+          {% if avg_rating and i <= avg_rating|round(0, 'floor') %}
+          <i class="fas fa-star"></i>
+          {% else %}
+          <i class="far fa-star"></i>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <span class="text-gray-600">{{ avg_rating|round(1) if avg_rating else "No rating" }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if can_post and not existing_review %}
+  <!-- Write Review Form -->
+  <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h2 class="text-xl font-semibold text-gray-900 mb-4">Write a Review</h2>
+    <form action="/institute/{{ encode_id(inst.aishe_code) }}/review" method="POST">
+      <label for="title" class="block font-medium text-gray-700 mb-1">Title</label>
+      <input type="text" name="title" id="title" required maxlength="100"
+             class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4">
+
+      <label class="block font-medium text-gray-700 mb-1">Rating</label>
+      <div class="flex gap-2 mb-4">
+        {% for i in range(1, 6) %}
+        <label>
+          <input type="radio" name="rating" value="{{ i }}" required class="hidden peer">
+          <i class="fas fa-star text-xl cursor-pointer peer-checked:text-yellow-400 text-gray-300"></i>
+        </label>
+        {% endfor %}
+      </div>
+
+      <label for="body" class="block font-medium text-gray-700 mb-1">Your Review</label>
+      <textarea name="body" id="body" rows="4" required maxlength="500"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4"></textarea>
+
+      <button type="submit"
+              class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition duration-200">
+        Submit Review
+      </button>
+    </form>
+  </div>
+  {% elif can_post and existing_review %}
+  <div class="bg-white rounded-lg shadow-md p-6 mb-8 text-gray-500 italic">
+    You’ve already submitted a review for this college.
+  </div>
+  {% endif %}
+
+  <div class="bg-white rounded-lg shadow-md p-6">
+    {% if reviews %}
+    {% set user_reviews = [] %}
+    {% set other_reviews = [] %}
+    {% for review in reviews %}
+      {% if user and review.user_id == user.id %}
+        {% set _ = user_reviews.append(review) %}
+      {% else %}
+        {% set _ = other_reviews.append(review) %}
+      {% endif %}
+    {% endfor %}
+
+    {% if user_reviews %}
+    <h2 class="text-xl font-semibold text-gray-900 mb-6">Your Reviews</h2>
+    <div class="space-y-6 mb-8">
+      {% for review in user_reviews %}
+      <div class="border-b border-gray-200 pb-6">
+        <h4 class="font-medium text-gray-900">{{ review.title }}</h4>
+        <div class="flex items-center gap-2 text-sm text-gray-600 mb-1">
+          {% for i in range(1, 6) %}
+            {% if i <= review.rating %}
+            <i class="fas fa-star text-yellow-400"></i>
+            {% else %}
+            <i class="far fa-star text-gray-300"></i>
+            {% endif %}
+          {% endfor %}
+          <span>{{ review.created_at.strftime('%Y-%m-%d') }}</span>
+        </div>
+        <p class="text-gray-700">{{ review.body }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if other_reviews %}
+    <h2 class="text-xl font-semibold text-gray-900 mb-6">Other Reviews</h2>
+    <div class="space-y-6">
+      {% for review in other_reviews %}
+      <div class="border-b border-gray-200 pb-6">
+        <div class="flex items-center gap-3 mb-2">
+          <img src="{{ url_for('static', filename=review.user.photo_url) if review.user.photo_url else url_for('static', filename='images/default-avatar.svg') }}"
+               class="w-10 h-10 rounded-full">
+          <div>
+            <a href="/user/{{ encode_id(review.user.linkedin_id) }}"
+               class="font-medium text-gray-900 hover:underline">{{ review.user.name }}</a>
+            <div class="flex items-center text-sm gap-2">
+              {% for i in range(1, 6) %}
+                {% if i <= review.rating %}
+                <i class="fas fa-star text-yellow-400"></i>
+                {% else %}
+                <i class="far fa-star text-gray-300"></i>
+                {% endif %}
+              {% endfor %}
+              <span class="text-gray-500">{{ review.created_at.strftime('%Y-%m-%d') }}</span>
+            </div>
+          </div>
+        </div>
+        <h4 class="font-medium text-gray-900 mb-1">{{ review.title }}</h4>
+        <p class="text-gray-700">{{ review.body }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <p class="text-gray-500 text-center py-8">No reviews yet.</p>
+    {% endif %}
+  </div>
+</main>
+
+</body>
+</html>

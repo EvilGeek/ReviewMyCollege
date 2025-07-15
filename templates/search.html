@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Search Colleges - CollegeReview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="bg-white shadow-sm border-b">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+      <div class="flex items-center gap-4">
+        <a href="/" class="text-xl font-bold text-gray-900">CollegeReview</a>
+
+        <div class="relative flex-1 max-w-lg">
+          <input 
+            type="text" 
+            id="searchInput"
+            placeholder="Search for a college…" 
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            oninput="handleSearch()"
+          >
+          <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+  {% if user %}
+    <div class="relative">
+      <button onclick="toggleUserMenu()" class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100">
+        <img src="{{ url_for('static', filename=user.photo_url or 'images/default-avatar.svg') }}" alt="User" class="w-8 h-8 rounded-full">
+        <i class="fas fa-chevron-down text-sm text-gray-500"></i>
+      </button>
+      <div id="userMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
+        <a href="/profile" class="block px-4 py-2 text-gray-700 hover:bg-gray-50">Profile</a>
+        <a href="/logout" class="block px-4 py-2 text-gray-700 hover:bg-gray-50">Logout</a>
+      </div>
+    </div>
+  {% else %}
+    <a href="/login" class="text-blue-600 hover:underline font-medium">Login</a>
+  {% endif %}
+</div>
+
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <h2 class="text-xl font-semibold text-gray-800 mb-4">Explore Colleges</h2>
+  <div id="searchResults" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3"></div>
+
+  <div id="noResults" class="hidden text-center py-12">
+    <i class="fas fa-search text-4xl text-gray-300 mb-4"></i>
+    <p class="text-gray-500">No colleges found. Try a different search term.</p>
+  </div>
+</main>
+
+<script>
+let institutions = []
+
+async function fetchRandomInstitutes() {
+  const res = await fetch('/api/suggest?random=true')
+  institutions = await res.json()
+  renderInstitutes(institutions)
+}
+
+async function handleSearch() {
+  const query = document.getElementById("searchInput").value.trim()
+  if (!query) {
+    return renderInstitutes(institutions)  // Show previously fetched random
+  }
+
+  const res = await fetch(`/api/suggest?q=${encodeURIComponent(query)}`)
+  const data = await res.json()
+  renderInstitutes(data)
+}
+
+function renderInstitutes(list) {
+  const container = document.getElementById("searchResults")
+  const empty = document.getElementById("noResults")
+  if (!list || list.length === 0) {
+    container.innerHTML = ''
+    empty.classList.remove('hidden')
+    return
+  }
+
+  empty.classList.add('hidden')
+  container.innerHTML = list.map(i => `
+    <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">${i.name}</h3>
+      <p class="text-gray-600 mb-1"><i class="fas fa-map-marker-alt mr-2"></i>${i.district || "Unknown"}, ${i.state || ""}</p>
+      <p class="text-gray-600 mb-1"><i class="fas fa-university mr-2"></i>${i.institution_type || "—"}</p>
+      <p class="text-gray-600 mb-4">
+         <i class="fas fa-star text-yellow-400 mr-1"></i>
+         ${i.avg_rating !== null ? `${i.avg_rating} / 5` : 'No ratings yet'}
+      </p>
+
+      <a href="/institute/${btoa(i.aishe_code)}" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200">
+        View Details
+      </a>
+    </div>
+  `).join('')
+}
+
+function toggleUserMenu() {
+  document.getElementById("userMenu")?.classList.toggle("hidden")
+}
+
+document.addEventListener("click", function(e) {
+  if (!e.target.closest("button")) {
+    document.getElementById("userMenu")?.classList.add("hidden")
+  }
+})
+
+fetchRandomInstitutes()
+</script>
+
+
+</body>
+</html>

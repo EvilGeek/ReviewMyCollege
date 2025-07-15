@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ user.name }} - CollegeReview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center gap-4">
+          <a href="javascript:window.history.length > 1 ? history.back() : window.location.href='/search';" class="text-gray-600 hover:text-gray-900">
+            <i class="fas fa-arrow-left"></i>
+          </a>
+          </button>
+          <a href="/" class="text-xl font-bold text-gray-900">CollegeReview</a>
+
+        </div>
+        <div class="flex items-center gap-4">
+          <a href="/search" class="text-gray-600 hover:text-gray-900">
+            <i class="fas fa-search"></i>
+          </a>
+          {% if current_user %}
+              <a href="/profile" class="text-gray-600 hover:text-gray-900">
+                  <img src="{{ url_for('static', filename=current_user.photo_url) if current_user.photo_url else url_for('static', filename='images/default-avatar.svg') }}" alt="You" class="w-8 h-8 rounded-full">
+              </a>
+          {% else %}
+             <a href="/login" class="text-blue-600 hover:underline font-medium">Login</a>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- User Info -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <div class="flex items-center gap-4 mb-6">
+        <img src="{{ url_for('static', filename=user.photo_url) if user.photo_url else url_for('static', filename='images/default-avatar.svg') }}" alt="Profile" class="w-20 h-20 rounded-full">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">{{ user.name }}</h1>
+          <a href="https://www.linkedin.com/in/{{ encode_id(user.linkedin_id) }}" class="text-blue-600 hover:underline flex items-center gap-1 mt-1" target="_blank">
+            <i class="fab fa-linkedin"></i>
+            LinkedIn Profile
+          </a>
+        </div>
+      </div>
+
+      <!-- Colleges -->
+      <div class="border-t pt-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Colleges</h2>
+        <div class="grid md:grid-cols-2 gap-4">
+          {% for inst in institutions %}
+            <div class="border border-gray-200 rounded-lg p-4">
+              <h3 class="font-medium text-gray-900">{{ inst.name }}</h3>
+              <p class="text-gray-600 text-sm">{{ inst.district }}, {{ inst.state }}</p>
+              <a href="/institute/{{ encode_id(inst.aishe_code) }}" class="text-blue-600 hover:underline text-sm">View Details</a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Reviews -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-xl font-semibold text-gray-900 mb-6">Reviews by {{ user.name }}</h2>
+      {% if reviews %}
+        <div class="space-y-6">
+          {% for review in reviews %}
+            <div class="border border-gray-200 rounded-lg p-4">
+              <div class="flex items-start justify-between mb-2">
+                <div>
+                  <a href="/institute/{{ encode_id(review.aishe_code) }}" class="font-medium text-blue-600 hover:underline">
+                    {{ review.institution.name if review.institution else "Unknown Institution" }}
+                  </a>
+                  <div class="flex items-center gap-2 mt-1 text-sm">
+                    {% for i in range(1, 6) %}
+                      {% if i <= review.rating %}
+                        <i class="fas fa-star text-yellow-400"></i>
+                      {% else %}
+                        <i class="far fa-star text-gray-300"></i>
+                      {% endif %}
+                    {% endfor %}
+                    <span class="text-gray-500">{{ review.created_at.strftime('%Y-%m-%d') }}</span>
+                  </div>
+                </div>
+              </div>
+              <h4 class="font-medium text-gray-900 mb-2">{{ review.title }}</h4>
+              <p class="text-gray-700 line-clamp-3">{{ review.body }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-gray-500 text-center py-8">This user hasn't written any reviews yet.</p>
+      {% endif %}
+    </div>
+  </main>
+</body>
+</html>
